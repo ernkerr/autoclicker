@@ -1,17 +1,12 @@
-//
-//  AutoClickerApp.swift
-//  AutoClicker
-//
-//  Created by Erin on 7/15/25.
-//
-
 import SwiftUI
 
 @main
 struct AutoClickerApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     var body: some Scene {
         WindowGroup {
             ContentView()
         }
     }
 }
+
