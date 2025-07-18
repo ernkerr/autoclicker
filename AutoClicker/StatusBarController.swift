@@ -7,11 +7,14 @@
 
 import AppKit
 
+//let clickController = ClickController()
+
 class StatusBarController {
     private var statusItem: NSStatusItem
     private var targetPoint: NSPoint? // save coordinates
-    private var globalMonitor: Any?
-    
+    private var globalClickMonitor: Any?
+    private var globalKeyMonitor: Any?
+
     init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
@@ -20,6 +23,7 @@ class StatusBarController {
         }
 
         constructMenu()
+        setupGlobalHotkeyMonitor()
     }
 
     private func constructMenu() {
@@ -43,40 +47,40 @@ class StatusBarController {
         quitItem.target = self
         menu.addItem(quitItem)
 
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "Q"))
         statusItem.menu = menu
+    }
+
+    private func setupGlobalHotkeyMonitor() {
+        // This listens for global key events (even outside the app)
+        globalKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { event in
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            if flags.contains([.control, .option, .command]) && event.charactersIgnoringModifiers?.lowercased() == "q" {
+                print("Global hotkey pressed: Control + Option + Command + Q")
+                NSApplication.shared.terminate(nil)
+            }
+        }
     }
 
     @objc func selectTarget() {
         print("Select Target clicked - enter picking mode")
 
-        // Remove existing monitor if exists
-        if globalMonitor != nil {
-            NSEvent.removeMonitor(globalMonitor!)
-            globalMonitor = nil
+        if globalClickMonitor != nil {
+            NSEvent.removeMonitor(globalClickMonitor!)
+            globalClickMonitor = nil
         }
 
-        // Add a new monitor that listens for the next left mouse click
-        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
-            // Get the location of the mouse click in screen coordinates
+        globalClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
             let location = NSEvent.mouseLocation
-
-            // Save the point
             self?.targetPoint = location
-
             print("Selected point: \(location)")
-
-            // Remove monitor so we only capture one click
-            if let monitor = self?.globalMonitor {
+            if let monitor = self?.globalClickMonitor {
                 NSEvent.removeMonitor(monitor)
-                self?.globalMonitor = nil
+                self?.globalClickMonitor = nil
             }
         }
 
         print("Now click anywhere to select the target point")
     }
-
 
     @objc func startClicking() {
         print("Start Clicking clicked")

@@ -195,6 +195,9 @@
 			);
 			mainGroup = 128916732E270F7400D36D90;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				1286F4792E2AD42500A79475 /* XCRemoteSwiftPackageReference "HotKey" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 1289167D2E270F7400D36D90 /* Products */;
 			projectDirPath = "";
@@ -551,6 +554,17 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		1286F4792E2AD42500A79475 /* XCRemoteSwiftPackageReference "HotKey" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/soffes/HotKey.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
 	};
 	rootObject = 128916742E270F7400D36D90 /* Project object */;
 }
