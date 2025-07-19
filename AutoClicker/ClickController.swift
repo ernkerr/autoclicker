@@ -17,10 +17,13 @@ class ClickController: ObservableObject {
     @Published var interval: Double = 1
     @Published var isIntervalMode = false
     @Published var progress: Double = 0
+    @Published var isDoubleClickEnabled = false
+
     private var timer: Timer?
     private var clickCount = 0
     private let maxClicks = 10
     private var targetPoint: CGPoint?
+    private var globalMonitor: Any?
 
     private init() {}
 
@@ -30,7 +33,7 @@ class ClickController: ObservableObject {
     }
 
     func startClicking() {
-        guard let point = targetPoint else {
+        guard let storedPoint = targetPoint else {
             print("❌ No target point selected.")
             isRunning = false
             return
@@ -40,17 +43,22 @@ class ClickController: ObservableObject {
         let delay = isIntervalMode ? interval : 1.0 / clicksPerSecond
 
         timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            self.click(at: point)
-            self.clickCount += 1
-            self.progress = Double(self.clickCount) / Double(self.maxClicks)
+            guard let self = self, let safePoint = self.targetPoint else { return }
 
-            if self.clickCount >= self.maxClicks {
-                self.stopClicking()
+            DispatchQueue.main.async {
+                print("🧵 Timer on thread: \(Thread.current)")
+                self.performClick(at: safePoint)
+                self.clickCount += 1
+                self.progress = Double(self.clickCount) / Double(self.maxClicks)
+
+                // Uncomment if you want to stop after maxClicks
+//                if self.clickCount >= self.maxClicks {
+//                    self.stopClicking()
+//                }
             }
         }
 
-        print("🟢 Started clicking at \(point), interval: \(delay)s")
+        print("🟢 Started clicking at \(storedPoint), interval: \(delay)s")
     }
 
     func stopClicking() {
@@ -62,30 +70,78 @@ class ClickController: ObservableObject {
         print("🔴 Stopped clicking")
     }
 
-    func click(at point: CGPoint) {
+    // New function: click with cursor save and restore
+    func clickWithCursorRestore(at point: CGPoint) {
+        // Save original cursor position
+        let originalPos = NSEvent.mouseLocation
+
+        // Convert to flipped coordinates for CGEvent
+        let screenHeight = NSScreen.main?.frame.height ?? 0
+        let flippedPoint = CGPoint(x: point.x, y: screenHeight - point.y)
+
+        // Move cursor to target
+        let moveToTarget = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: flippedPoint, mouseButton: .left)
+        moveToTarget?.post(tap: .cghidEventTap)
+
+        // Create click down and up events
         let eventSource = CGEventSource(stateID: .hidSystemState)
-        let clickDown = CGEvent(mouseEventSource: eventSource, mouseType: .leftMouseDown, mouseCursorPosition: point, mouseButton: .left)
-        let clickUp = CGEvent(mouseEventSource: eventSource, mouseType: .leftMouseUp, mouseCursorPosition: point, mouseButton: .left)
+        let clickDown = CGEvent(mouseEventSource: eventSource, mouseType: .leftMouseDown, mouseCursorPosition: flippedPoint, mouseButton: .left)
+        let clickUp = CGEvent(mouseEventSource: eventSource, mouseType: .leftMouseUp, mouseCursorPosition: flippedPoint, mouseButton: .left)
+
+        // Post click events
         clickDown?.post(tap: .cghidEventTap)
         clickUp?.post(tap: .cghidEventTap)
-        print("🖱️ Clicked at \(point)")
+
+        // Restore cursor to original position after slight delay to avoid flicker
+        let restoreCursor = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: originalPos, mouseButton: .left)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
+            restoreCursor?.post(tap: .cghidEventTap)
+        }
+
+        print("🖱️ Clicked at (unflipped): \(point), actual: \(flippedPoint), restored cursor to \(originalPos)")
+    }
+
+    func performClick(at point: CGPoint) {
+        clickWithCursorRestore(at: point)
+
+        if isDoubleClickEnabled {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                guard let self = self else { return }
+                self.clickWithCursorRestore(at: point)
+            }
+        }
     }
 
     func selectTarget() {
         print("🎯 Select target enabled. Click anywhere...")
 
-        NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] _ in
+        if let monitor = globalMonitor {
+            NSEvent.removeMonitor(monitor)
+            globalMonitor = nil
+        }
+
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] _ in
             let location = NSEvent.mouseLocation
             DispatchQueue.main.async {
                 self?.targetPoint = location
-                print("✅ Target set at: \(location)")
+                print("✅ Target set at (raw): \(location)")
+
+                if let monitor = self?.globalMonitor {
+                    NSEvent.removeMonitor(monitor)
+                    self?.globalMonitor = nil
+                }
             }
         }
     }
 
     func increaseRate() {
         if isIntervalMode {
-            interval += 0.5
+            if interval > 1 {
+                interval -= 1
+            } else {
+                isIntervalMode = false
+                clicksPerSecond = 1
+            }
         } else {
             clicksPerSecond += 1
         }
@@ -93,18 +149,16 @@ class ClickController: ObservableObject {
 
     func decreaseRate() {
         if isIntervalMode {
-                    // In interval mode, increase the interval up to max 60 seconds
-                    if interval < 60 {
-                        interval += 1
-                    }
-                } else {
-                    // In clicks per second mode, decrease clicksPerSecond until 1, then switch to interval mode
-                    if clicksPerSecond > 1 {
-                        clicksPerSecond -= 1
-                    } else {
-                        isIntervalMode = true
-                        interval = 1
-                    }
-                }
+            if interval < 60 {
+                interval += 1
             }
+        } else {
+            if clicksPerSecond > 1 {
+                clicksPerSecond -= 1
+            } else {
+                isIntervalMode = true
+                interval = 1
+            }
+        }
+    }
 }
