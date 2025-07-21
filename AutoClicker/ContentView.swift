@@ -2,6 +2,8 @@ import SwiftUI
 
 struct ContentView: View {
     @ObservedObject var clickController = ClickController.shared
+    @State private var showSettings = false
+
 
     var body: some View {
         VStack(spacing: 16) {
@@ -19,13 +21,20 @@ struct ContentView: View {
 
                 Spacer()
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Toggle("Double Click Mode", isOn: $clickController.isDoubleClickEnabled)
-                        .toggleStyle(.switch)
-                    Toggle("Smart Delay", isOn: $clickController.isSmartDelayEnabled)
-                        .toggleStyle(.switch)
+                
+                Button(action: {
+                    showSettings = true
+                }) {
+                    Image(systemName: "gearshape")
+                        .font(.title2)
+                        .foregroundColor(.gray)
+                        .padding(6)
                 }
-                .padding()
+                .buttonStyle(.plain)
+                .sheet(isPresented: $showSettings) {
+                    SettingsView(clickController: clickController)
+                }
+
             }
             .frame(maxWidth: .infinity)
 
@@ -39,14 +48,6 @@ struct ContentView: View {
             .foregroundColor(.white) // white text on colored background
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .buttonStyle(.plain) // prevent default system button styles from interfering
-
-            // ⏱️ Mode Label
-            Text(clickController.isIntervalMode ?
-                 "every \(Int(clickController.interval)) second(s)" :
-                 "\(Int(clickController.clicksPerSecond)) per second"
-            )
-            .font(.caption)
-            .foregroundColor(Color.gray.opacity(0.85))
 
             // ➕➖ Rate controls
             HStack(spacing: 12) {
@@ -70,6 +71,15 @@ struct ContentView: View {
                 .foregroundColor(Color.gray)
             }
             .padding(.bottom, 6)
+            
+            
+            // ⏱️ Mode Label
+            Text(clickController.isIntervalMode ?
+                 "every \(Int(clickController.interval)) seconds" :
+                 "\(Int(clickController.clicksPerSecond)) per second"
+            )
+            .font(.caption)
+            .foregroundColor(Color.gray.opacity(0.85))
 
             // 📊 Progress bar
             ProgressView(value: clickController.progress)
