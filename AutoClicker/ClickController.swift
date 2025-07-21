@@ -18,6 +18,7 @@ class ClickController: ObservableObject {
     @Published var isIntervalMode = false
     @Published var progress: Double = 0
     @Published var isDoubleClickEnabled = false
+    @Published var isSmartDelayEnabled = false
 
     private var timer: Timer?
     private var clickCount = 0
@@ -33,7 +34,7 @@ class ClickController: ObservableObject {
     }
 
     func startClicking() {
-        guard let storedPoint = targetPoint else {
+        guard let point = targetPoint else {
             print("❌ No target point selected.")
             isRunning = false
             return
@@ -43,22 +44,17 @@ class ClickController: ObservableObject {
         let delay = isIntervalMode ? interval : 1.0 / clicksPerSecond
 
         timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: true) { [weak self] _ in
-            guard let self = self, let safePoint = self.targetPoint else { return }
+            guard let self = self else { return }
+            self.performClick(at: point)
+            self.clickCount += 1
+            self.progress = Double(self.clickCount) / Double(self.maxClicks)
 
-            DispatchQueue.main.async {
-                print("🧵 Timer on thread: \(Thread.current)")
-                self.performClick(at: safePoint)
-                self.clickCount += 1
-                self.progress = Double(self.clickCount) / Double(self.maxClicks)
-
-                // Uncomment if you want to stop after maxClicks
-//                if self.clickCount >= self.maxClicks {
-//                    self.stopClicking()
-//                }
+            if self.clickCount >= self.maxClicks {
+                self.stopClicking()
             }
         }
 
-        print("🟢 Started clicking at \(storedPoint), interval: \(delay)s")
+        print("🟢 Started clicking at \(point), interval: \(delay)s")
     }
 
     func stopClicking() {
@@ -70,44 +66,74 @@ class ClickController: ObservableObject {
         print("🔴 Stopped clicking")
     }
 
-    // New function: click with cursor save and restore
-    func clickWithCursorRestore(at point: CGPoint) {
-        // Save original cursor position
-        let originalPos = NSEvent.mouseLocation
+    func performClick(at point: CGPoint) {
+        let originalLocation = NSEvent.mouseLocation
 
-        // Convert to flipped coordinates for CGEvent
+        let clickAction = {
+            self.moveCursorAndClick(at: point)
+            self.restoreCursor(to: originalLocation)
+        }
+
+        if isSmartDelayEnabled {
+            waitForMouseIdleThen(clickAction)
+        } else {
+            clickAction()
+        }
+    }
+
+    func moveCursorAndClick(at point: CGPoint) {
         let screenHeight = NSScreen.main?.frame.height ?? 0
         let flippedPoint = CGPoint(x: point.x, y: screenHeight - point.y)
 
-        // Move cursor to target
-        let moveToTarget = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: flippedPoint, mouseButton: .left)
-        moveToTarget?.post(tap: .cghidEventTap)
+        let moveEvent = CGEvent(mouseEventSource: nil,
+                                mouseType: .mouseMoved,
+                                mouseCursorPosition: flippedPoint,
+                                mouseButton: .left)
+        moveEvent?.post(tap: .cghidEventTap)
 
-        // Create click down and up events
-        let eventSource = CGEventSource(stateID: .hidSystemState)
-        let clickDown = CGEvent(mouseEventSource: eventSource, mouseType: .leftMouseDown, mouseCursorPosition: flippedPoint, mouseButton: .left)
-        let clickUp = CGEvent(mouseEventSource: eventSource, mouseType: .leftMouseUp, mouseCursorPosition: flippedPoint, mouseButton: .left)
-
-        // Post click events
-        clickDown?.post(tap: .cghidEventTap)
-        clickUp?.post(tap: .cghidEventTap)
-
-        // Restore cursor to original position after slight delay to avoid flicker
-        let restoreCursor = CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: originalPos, mouseButton: .left)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
-            restoreCursor?.post(tap: .cghidEventTap)
+        // Double click
+        for clickType in [CGEventType.leftMouseDown, .leftMouseUp,
+                          .leftMouseDown, .leftMouseUp] {
+            let clickEvent = CGEvent(mouseEventSource: nil,
+                                     mouseType: clickType,
+                                     mouseCursorPosition: flippedPoint,
+                                     mouseButton: .left)
+            clickEvent?.post(tap: .cghidEventTap)
         }
 
-        print("🖱️ Clicked at (unflipped): \(point), actual: \(flippedPoint), restored cursor to \(originalPos)")
+        print("🖱️ Double clicked at (unflipped): \(point), actual: \(flippedPoint)")
     }
 
-    func performClick(at point: CGPoint) {
-        clickWithCursorRestore(at: point)
+    func restoreCursor(to point: CGPoint) {
+        let screenHeight = NSScreen.main?.frame.height ?? 0
+        let flippedPoint = CGPoint(x: point.x, y: screenHeight - point.y)
 
-        if isDoubleClickEnabled {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                guard let self = self else { return }
-                self.clickWithCursorRestore(at: point)
+        let moveEvent = CGEvent(mouseEventSource: nil,
+                                mouseType: .mouseMoved,
+                                mouseCursorPosition: flippedPoint,
+                                mouseButton: .left)
+        moveEvent?.post(tap: .cghidEventTap)
+    }
+
+    func waitForMouseIdleThen(_ action: @escaping () -> Void) {
+        let threshold: TimeInterval = 1.2
+        var lastMove = Date()
+        var monitor: Any?
+
+        monitor = NSEvent.addGlobalMonitorForEvents(matching: .mouseMoved) { _ in
+            lastMove = Date()
+        }
+
+        DispatchQueue.global().async {
+            while Date().timeIntervalSince(lastMove) < threshold {
+                usleep(200_000) // 0.2s
+            }
+
+            DispatchQueue.main.async {
+                if let m = monitor {
+                    NSEvent.removeMonitor(m)
+                }
+                action()
             }
         }
     }
@@ -124,7 +150,7 @@ class ClickController: ObservableObject {
             let location = NSEvent.mouseLocation
             DispatchQueue.main.async {
                 self?.targetPoint = location
-                print("✅ Target set at (raw): \(location)")
+                print("✅ Target set at: \(location)")
 
                 if let monitor = self?.globalMonitor {
                     NSEvent.removeMonitor(monitor)
