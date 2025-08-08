@@ -221,6 +221,7 @@ class ClickController: ObservableObject {
             let location = NSEvent.mouseLocation
             DispatchQueue.main.async {
                 self?.targetPoint = location
+                self?.errorMessage = nil
                 print("✅ Target set at: \(location)")
 
                 if let monitor = self?.globalMonitor {

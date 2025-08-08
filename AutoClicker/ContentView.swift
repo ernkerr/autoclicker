@@ -54,8 +54,8 @@ struct ContentView: View {
             .buttonStyle(.plain) // prevent default system button styles from interfering
             
             if clickController.isRunning {
-                Text("Press Control + Option + Command + Q to quit")
-                    .font(.title2)
+                Text("Press Control + Option + Command + Q to stop clicking")
+                    .font(.caption)
                     .foregroundColor(.gray)
                     .padding(.top, 4)
             }
@@ -68,6 +68,7 @@ struct ContentView: View {
                 }
                 .font(.title)
                 .foregroundColor(Color.gray)
+                
 
                 Text(clickController.isIntervalMode ?
                      "\(Int(clickController.interval))" :
@@ -86,9 +87,13 @@ struct ContentView: View {
             
             
             // ⏱️ Mode Label
-            Text(clickController.isIntervalMode ?
-                 "every \(Int(clickController.interval)) seconds" :
-                 "\(Int(clickController.clicksPerSecond)) per second"
+    
+            let value = Int(clickController.isIntervalMode ? clickController.interval : clickController.clicksPerSecond)
+
+            Text(
+                clickController.isIntervalMode
+                    ? "every \(value) \(value == 1 ? "second" : "seconds")"
+                    : "\(value) \(value == 1 ? "per second" : "per second")"
             )
             .font(.caption)
             .foregroundColor(Color.gray.opacity(0.85))
