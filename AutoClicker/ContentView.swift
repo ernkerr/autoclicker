@@ -3,6 +3,8 @@ import SwiftUI
 struct ContentView: View {
     @ObservedObject var clickController = ClickController.shared
     @State private var showSettings = false
+    @State private var showingErrorMessage = false
+
 
 
     var body: some View {
@@ -11,6 +13,8 @@ struct ContentView: View {
             HStack {
                 Button(action: {
                     clickController.selectTarget()
+                    showingErrorMessage = false
+
                 }) {
                     Image(systemName: "scope")
                         .font(.title2)
@@ -48,6 +52,14 @@ struct ContentView: View {
             .foregroundColor(.white) // white text on colored background
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .buttonStyle(.plain) // prevent default system button styles from interfering
+            
+            if clickController.isRunning {
+                Text("Press Control + Option + Command + Q to quit")
+                    .font(.title2)
+                    .foregroundColor(.gray)
+                    .padding(.top, 4)
+            }
+
 
             // ➕➖ Rate controls
             HStack(spacing: 12) {
@@ -80,6 +92,15 @@ struct ContentView: View {
             )
             .font(.caption)
             .foregroundColor(Color.gray.opacity(0.85))
+            
+            if let error = clickController.errorMessage {
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+
 
             // 📊 Progress bar
             ProgressView(value: clickController.progress)

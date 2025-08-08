@@ -10,6 +10,7 @@ import Cocoa
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusBarController: StatusBarController?
     var globalMonitor: Any?
+    var localMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusBarController = StatusBarController()
@@ -22,6 +23,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 NSApplication.shared.terminate(nil)
             }
         }
+        
+        // Local hotkey monitor (works when app IS focused)
+        localMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            if event.modifierFlags.contains([.control, .option, .command]) &&
+                event.charactersIgnoringModifiers == "q" {
+                print("Local Hotkey pressed: Control + Option + Command + Q")
+                ClickController.shared.stopClicking()
+                return nil // don't pass the event through to system
+            }
+            return event
+        }
+
     }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -21,6 +21,7 @@ class ClickController: ObservableObject {
     @Published var isSmartDelayEnabled = false
     @Published var isClickLimitEnabled: Bool = false
     @Published var maxClicks: Int = 100
+    @Published var errorMessage: String? = nil
 
 
     private var timer: Timer?
@@ -41,6 +42,8 @@ class ClickController: ObservableObject {
     func startClicking() {
         guard let point = targetPoint else {
             print("❌ No target point selected.")
+            errorMessage = "❌ No target selected"
+
             isRunning = false
             return
         }
