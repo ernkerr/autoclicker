@@ -27,6 +27,9 @@ class ClickController: ObservableObject {
     private var clickCount = 0
     private var targetPoint: CGPoint?
     private var globalMonitor: Any?
+    private var progressTimer: Timer?   // new timer for smooth progress updates
+    private var lastClickTime: Date?    // time of last click, for progress calculation
+    private var delay: TimeInterval = 1 // how long between clicks (seconds)
 
     private init() {}
 
@@ -43,17 +46,30 @@ class ClickController: ObservableObject {
         }
 
         clickCount = 0
-        let delay = isIntervalMode ? interval : 1.0 / clicksPerSecond
+        delay = isIntervalMode ? interval : 1.0 / clicksPerSecond
+        lastClickTime = Date()
+        progress = 0
 
+        // Timer to perform clicks at fixed intervals
         timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             self.performClick(at: point)
             self.clickCount += 1
-            self.progress = Double(self.clickCount) / Double(self.maxClicks)
+            
+            // Reset progress tracking each click
+            self.lastClickTime = Date()
+            self.progress = 0
 
             if self.clickCount >= self.maxClicks {
                 self.stopClicking()
             }
+        }
+
+        // Timer to update progress smoothly 20 times per second
+        progressTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+            guard let self = self, let lastClickTime = self.lastClickTime else { return }
+            let elapsed = Date().timeIntervalSince(lastClickTime)
+            self.progress = min(elapsed / self.delay, 1)
         }
 
         print("🟢 Started clicking at \(point), interval: \(delay)s")
@@ -62,11 +78,16 @@ class ClickController: ObservableObject {
     func stopClicking() {
         timer?.invalidate()
         timer = nil
+
+        progressTimer?.invalidate()   // stop progress updates too
+        progressTimer = nil
+
         isRunning = false
         progress = 0
-//        clickCount = 0
+
         print("🔴 Stopped clicking")
     }
+
 
     func performClick(at point: CGPoint) {
         let originalLocation = NSEvent.mouseLocation
