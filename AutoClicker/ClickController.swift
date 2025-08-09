@@ -42,7 +42,7 @@ class ClickController: ObservableObject {
     func startClicking() {
         guard let point = targetPoint else {
             print("❌ No target point selected.")
-            errorMessage = "❌ No target selected"
+            errorMessage = "No target selected"
 
             isRunning = false
             return
@@ -57,7 +57,6 @@ class ClickController: ObservableObject {
         timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             self.performClick(at: point)
-            self.clickCount += 1
             
             // Reset progress tracking each click
             self.lastClickTime = Date()

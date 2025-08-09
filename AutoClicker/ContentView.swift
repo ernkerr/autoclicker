@@ -54,10 +54,16 @@ struct ContentView: View {
             .buttonStyle(.plain) // prevent default system button styles from interfering
             
             if clickController.isRunning {
-                Text("Press Control + Option + Command + Q to stop clicking")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                    .padding(.top, 4)
+                VStack(spacing: 0) {
+                    Text("Control + Option + Command + Q")
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                    Text("to stop clicking")
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                }
+                .multilineTextAlignment(.center) // Center-align text inside VStack
+                .frame(maxWidth: .infinity)      // Make VStack take full width
             }
 
 
