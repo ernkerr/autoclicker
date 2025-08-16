@@ -25,10 +25,10 @@ struct ContentView: View {
                         .padding(8)
                         .background(
                             RoundedRectangle(cornerRadius: 10)
-                                .fill(.thickMaterial) // Stronger material for better text contrast
+                                .fill(.thinMaterial) //
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 10)
-                                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                                        .stroke(.white.opacity(0.1), lineWidth: 1)
                                 )
                                 .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                         )
@@ -46,10 +46,10 @@ struct ContentView: View {
                         .padding(8)
                         .background(
                             RoundedRectangle(cornerRadius: 10)
-                                .fill(.thickMaterial) // Stronger material for better text contrast
+                                .fill(.thinMaterial)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 10)
-                                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                                    .stroke(.white.opacity(0.1), lineWidth: 1)
                                 )
                                 .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                         )
@@ -69,7 +69,7 @@ struct ContentView: View {
             .frame(width: 120, height: 60)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(clickController.isRunning ? Color.red.opacity(0.8) : Color.green.opacity(0.8))
+                    .fill(clickController.isRunning ? Color.red.opacity(0.9) : Color.green.opacity(0.7))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .fill(.regularMaterial)
@@ -77,7 +77,7 @@ struct ContentView: View {
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(.white.opacity(0.4), lineWidth: 1.5)
+                            .stroke(.white.opacity(0.1), lineWidth: 1.5)
                     )
                     .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
             )
@@ -85,27 +85,24 @@ struct ContentView: View {
             .buttonStyle(.plain)
             
             if clickController.isRunning {
-                VStack(spacing: 0) {
-                    Text("Control + Option + Command + Q")
-                        .font(.caption2.weight(.medium))
-                        .foregroundColor(.secondary) // Apple's secondary gray
-                    Text("to stop clicking")
-                        .font(.caption2.weight(.medium))
-                        .foregroundColor(.secondary) // Apple's secondary gray
-                }
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-                .padding(8)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(.thickMaterial) // Stronger material for better text contrast
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(.white.opacity(0.2), lineWidth: 1)
-                        )
-                        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
-                )
+                Text("Control + Option + Command + Q to stop")
+                    .font(.caption.weight(.medium))
+                    .foregroundColor(.red.opacity(0.9)) // 🔴 red-ish text like error
+                    .multilineTextAlignment(.center)
+                    .lineLimit(nil) // ✅ allow wrapping
+                    .fixedSize(horizontal: false, vertical: true) // ✅ wrap instead of cut off
+                    .padding(.horizontal)
+                    .padding(8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(.regularMaterial)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(.red.opacity(0.3), lineWidth: 1) // 🔴 border like error
+                            )
+                    )
             }
+
 
             // ➕➖ Rate controls with exact target/settings style
             HStack(spacing: 12) {
@@ -117,13 +114,14 @@ struct ContentView: View {
                 .padding(12)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(.thickMaterial) // Stronger material for better text contrast
+                        .fill(.thinMaterial)
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
-                                .stroke(.white.opacity(0.3), lineWidth: 1)
+                                .stroke(.white.opacity(0.1), lineWidth: 1)
                         )
                         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                 )
+                .contentShape(Rectangle())
                 .buttonStyle(.plain)
 
                 Text(clickController.isIntervalMode ?
@@ -142,13 +140,14 @@ struct ContentView: View {
                 .padding(12)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(.thickMaterial) // Stronger material for better text contrast
+                        .fill(.thinMaterial)
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
-                                .stroke(.white.opacity(0.3), lineWidth: 1)
+                                .stroke(.white.opacity(0.1), lineWidth: 1)
                         )
                         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                 )
+                .contentShape(Rectangle())
                 .buttonStyle(.plain)
             }
             .padding(.bottom, 6)
@@ -199,7 +198,8 @@ struct ContentView: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(.thickMaterial) // Apple's strongest material for best text contrast
+                .fill(.thinMaterial)
+                .overlay(Color.white.opacity(0.05)) // 🌤️ subtle brightening
                 .overlay(
                     RoundedRectangle(cornerRadius: 20)
                         .stroke(.white.opacity(0.1), lineWidth: 1)
