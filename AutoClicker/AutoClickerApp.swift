@@ -11,8 +11,10 @@ struct AutoClickerApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .background(Color.clear)
+//                .background(Color.clear)
         }
         .windowResizability(.contentSize)
+        .windowStyle(HiddenTitleBarWindowStyle())
+
     }
 }

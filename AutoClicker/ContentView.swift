@@ -114,7 +114,7 @@ struct ContentView: View {
                 }
                 .font(.title2)
                 .foregroundColor(.primary) // Apple's adaptive gray
-                .padding(8)
+                .padding(12)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
                         .fill(.thickMaterial) // Stronger material for better text contrast
@@ -139,7 +139,7 @@ struct ContentView: View {
                 }
                 .font(.title2)
                 .foregroundColor(.primary) // Apple's adaptive gray
-                .padding(8)
+                .padding(12)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
                         .fill(.thickMaterial) // Stronger material for better text contrast
@@ -182,19 +182,19 @@ struct ContentView: View {
             }
 
             // 📊 Progress bar with glass container
-            ProgressView(value: clickController.progress)
-                .progressViewStyle(LinearProgressViewStyle(tint: .accentColor)) // Apple's adaptive accent
-                .frame(width: 120)
-                .padding(8)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(.regularMaterial)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(.white.opacity(0.2), lineWidth: 1)
-                        )
-                        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
-                )
+//            ProgressView(value: clickController.progress)
+//                .progressViewStyle(LinearProgressViewStyle(tint: .accentColor)) // Apple's adaptive accent
+//                .frame(width: 120)
+//                .padding(8)
+//                .background(
+//                    RoundedRectangle(cornerRadius: 8)
+//                        .fill(.regularMaterial)
+//                        .overlay(
+//                            RoundedRectangle(cornerRadius: 8)
+//                                .stroke(.white.opacity(0.2), lineWidth: 1)
+//                        )
+//                        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+//                )
         }
         .padding(20)
         .background(
@@ -202,12 +202,13 @@ struct ContentView: View {
                 .fill(.thickMaterial) // Apple's strongest material for best text contrast
                 .overlay(
                     RoundedRectangle(cornerRadius: 20)
-                        .stroke(.white.opacity(0.2), lineWidth: 1)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
                 )
-                .shadow(color: .black.opacity(0.15), radius: 15, x: 0, y: 8)
+//                .shadow(color: .black.opacity(0.15), radius: 15, x: 0, y: 8)
         )
         .frame(width: 200)
         .foregroundColor(.primary) // Apple's adaptive gray as default
-        .background(Color.clear)
+//.background(Color.clear)
+        
     }
 }

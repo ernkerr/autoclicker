@@ -57,6 +57,7 @@ class ClickController: ObservableObject {
         timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             self.performClick(at: point)
+            self.clickCount += 1
             
             // Reset progress tracking each click
             self.lastClickTime = Date()
@@ -220,7 +221,7 @@ class ClickController: ObservableObject {
             let location = NSEvent.mouseLocation
             DispatchQueue.main.async {
                 self?.targetPoint = location
-                self?.errorMessage = nil
+                self?.errorMessage = nil   // ✅ Clear error once target is chosen
                 print("✅ Target set at: \(location)")
 
                 if let monitor = self?.globalMonitor {
