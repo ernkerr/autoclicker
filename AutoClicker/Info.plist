@@ -2,22 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSAccessibility	</key>
-	<true/>
-	<key>NSApplicationSupportsSecureRestorableState</key>
-	<true/>
-	<key>NSHighResolutionCapable</key>
-	<true/>
-	<key>NSMainNibFile</key>
-	<string></string>
-	<key>NSPrincipalClass	</key>
-	<string>NSApplication
-NSApplication
-</string>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
-	</dict>
+	<key>NSAccessibilityUsageDescription</key>
+	<string>Precision AutoClicker requires Accessibility access to control your mouse clicks.</string>
 </dict>
 </plist>
