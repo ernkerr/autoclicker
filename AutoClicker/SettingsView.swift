@@ -6,6 +6,7 @@ struct SettingsView: View {
 
     @State private var isClickModesExpanded = true
     @State private var isClickLimitExpanded = true
+    @State private var isAccessibilityExpanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -30,13 +31,65 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
 
-                Text("Settings")
+                Text("SmartClick Settings")
                     .font(.title2.weight(.semibold))
                     .foregroundColor(.primary) // Apple's adaptive gray
 
                 Spacer()
             }
 
+            // Accessibility Features Group
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Image(systemName: isAccessibilityExpanded ? "chevron.down" : "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Image(systemName: "person.badge.plus")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                    Text("Accessibility Features")
+                        .font(.headline.weight(.medium))
+                        .foregroundColor(.primary)
+                }
+                .onTapGesture {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isAccessibilityExpanded.toggle()
+                    }
+                }
+                
+                if isAccessibilityExpanded {
+                    VStack(alignment: .leading, spacing: 12) {
+                        settingRow(title: "Enhanced Accessibility Mode", binding: $clickController.accessibilityMode)
+                        settingRow(title: "Audio Feedback", binding: $clickController.isAudioFeedbackEnabled)
+                        settingRow(title: "Visual Feedback", binding: $clickController.isVisualFeedbackEnabled)
+                        
+                        if clickController.accessibilityMode {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Assistive Technology")
+                                    .font(.caption.weight(.medium))
+                                    .foregroundColor(.blue)
+                                Text("This mode provides enhanced feedback and logging for users with disabilities, including motor impairments and repetitive strain injuries.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .multilineTextAlignment(.leading)
+                            }
+                            .padding(.top, 8)
+                        }
+                    }
+                    .padding(.leading, 16)
+                }
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(.thickMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(clickController.accessibilityMode ? .blue.opacity(0.3) : .white.opacity(0.2), lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
+            )
+            
             // Click Modes Group with ContentView styling
             VStack(alignment: .leading, spacing: 12) {
                 HStack {

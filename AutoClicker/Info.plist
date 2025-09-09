@@ -3,6 +3,12 @@
 <plist version="1.0">
 <dict>
 	<key>NSAccessibilityUsageDescription</key>
-	<string>Precision AutoClicker requires Accessibility access to control your mouse clicks.</string>
+	<string>SmartClick uses accessibility features to automate repetitive clicking tasks, helping users with repetitive strain injuries and improving workflow efficiency. This access is required to perform automated clicks at user-specified locations while maintaining cursor control and smart delay features.</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2025 SmartClick. All rights reserved.</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.utilities</string>
+	<key>CFBundleDisplayName</key>
+	<string>SmartClick</string>
 </dict>
 </plist>

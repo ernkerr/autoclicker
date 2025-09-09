@@ -10,30 +10,57 @@ struct ContentView: View {
     @ObservedObject var clickController = ClickController.shared
     @State private var showSettings = false
     @State private var showingErrorMessage = false
+    @State private var showAccessibilityInfo = false
 
     var body: some View {
         VStack(spacing: 16) {
+            // Accessibility mode toggle
+            if clickController.accessibilityMode {
+                HStack {
+                    Image(systemName: "person.badge.plus")
+                        .foregroundColor(.blue)
+                    Text("Assistive Mode")
+                        .font(.caption.weight(.medium))
+                        .foregroundColor(.blue)
+                }
+                .padding(4)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(.blue.opacity(0.1))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(.blue.opacity(0.3), lineWidth: 1)
+                        )
+                )
+            }
             // 🎯 Target selector with enhanced glass effect
             HStack {
                 Button(action: {
                     clickController.selectTarget()
                     showingErrorMessage = false
                 }) {
-                    Image(systemName: "scope")
-                        .font(.title2)
-                        .foregroundColor(.primary) // Apple's adaptive gray
-                        .padding(8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(.thinMaterial) //
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .stroke(.white.opacity(0.1), lineWidth: 1)
-                                )
-                                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-                        )
+                    VStack(spacing: 2) {
+                        Image(systemName: "scope")
+                            .font(.title2)
+                        if clickController.accessibilityMode {
+                            Text("Target")
+                                .font(.caption2)
+                        }
+                    }
+                    .foregroundColor(.primary) // Apple's adaptive gray
+                    .padding(8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(.thinMaterial) //
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(.white.opacity(0.1), lineWidth: 1)
+                            )
+                            .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                    )
                 }
                 .buttonStyle(.plain)
+                .help("Select where to perform assistive clicking")
 
                 Spacer()
 
@@ -61,8 +88,8 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity)
 
-            // ▶️ Start/Stop with enhanced visibility
-            Button(clickController.isRunning ? "Stop" : "Start") {
+            // ▶️ Start/Stop with enhanced visibility and accessibility
+            Button(clickController.isRunning ? "Stop Assist" : "Start Assist") {
                 clickController.toggleClicking()
             }
             .font(.title.weight(.semibold))
@@ -83,6 +110,7 @@ struct ContentView: View {
             )
             .foregroundColor(.white) // Keep start button text white for contrast
             .buttonStyle(.plain)
+            .help(clickController.isRunning ? "Stop assistive clicking" : "Start assistive clicking at selected location")
             
             if clickController.isRunning {
                 Text("Control + Option + Command + Q to stop")

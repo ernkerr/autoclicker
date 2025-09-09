@@ -1,11 +1,12 @@
 //
-//  AutoClickerApp.swift
+//  SmartClickApp.swift
+//  SmartClick
 //
 
 import SwiftUI
 
 @main
-struct AutoClickerApp: App {
+struct SmartClickApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     var body: some Scene {

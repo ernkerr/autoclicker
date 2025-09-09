@@ -1,6 +1,6 @@
 //
 //  StatusBarController.swift
-//  AutoClicker
+//  SmartClick
 //
 //  Created by Erin on 7/17/25.
 //
@@ -14,7 +14,7 @@ class StatusBarController {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "cursorarrow", accessibilityDescription: "Auto Clicker")
+            button.image = NSImage(systemSymbolName: "cursorarrow.click.2", accessibilityDescription: "SmartClick - Assistive Auto Clicker")
         }
 
         constructMenu()
@@ -24,7 +24,7 @@ class StatusBarController {
         let menu = NSMenu()
 
         // Add show window menu item
-        let showWindowItem = NSMenuItem(title: "Show AutoClicker", action: #selector(showMainWindow), keyEquivalent: "S")
+        let showWindowItem = NSMenuItem(title: "Show SmartClick", action: #selector(showMainWindow), keyEquivalent: "S")
         showWindowItem.keyEquivalentModifierMask = [.control, .option, .command]
         showWindowItem.target = self
         menu.addItem(showWindowItem)

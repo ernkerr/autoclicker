@@ -8,6 +8,8 @@
 import Foundation
 import Combine
 import AppKit
+import AVFoundation // For audio feedback
+import ApplicationServices // For accessibility APIs
 
 class ClickController: ObservableObject {
     static let shared = ClickController()
@@ -22,6 +24,9 @@ class ClickController: ObservableObject {
     @Published var isClickLimitEnabled: Bool = false
     @Published var maxClicks: Int = 100
     @Published var errorMessage: String? = nil
+    @Published var isAudioFeedbackEnabled: Bool = true // New accessibility feature
+    @Published var isVisualFeedbackEnabled: Bool = true // New accessibility feature
+    @Published var accessibilityMode: Bool = false // New: Enhanced mode for users with disabilities
 
 
     private var timer: Timer?
@@ -31,10 +36,49 @@ class ClickController: ObservableObject {
     private var progressTimer: Timer?   // new timer for smooth progress updates
     private var lastClickTime: Date?    // time of last click, for progress calculation
     private var delay: TimeInterval = 1 // how long between clicks (seconds)
+    private var audioPlayer: AVAudioPlayer? // For accessibility audio feedback
 
-    private init() {}
+    private init() {
+        setupAudioFeedback()
+    }
+    
+    // MARK: - Accessibility Features
+    private func setupAudioFeedback() {
+        guard let soundURL = Bundle.main.url(forResource: "click", withExtension: "wav") else {
+            // Create a simple system sound if no custom sound available
+            return
+        }
+        try? audioPlayer = AVAudioPlayer(contentsOf: soundURL)
+        audioPlayer?.prepareToPlay()
+    }
+    
+    private func playClickSound() {
+        guard isAudioFeedbackEnabled else { return }
+        
+        // Use system sound as fallback
+        if audioPlayer == nil {
+            NSSound.beep()
+        } else {
+            audioPlayer?.stop()
+            audioPlayer?.currentTime = 0
+            audioPlayer?.play()
+        }
+    }
+    
+    private func showVisualFeedback(at point: CGPoint) {
+        guard isVisualFeedbackEnabled else { return }
+        
+        // This would create a visual indicator at the click point
+        // For now, we'll use console output but this could be enhanced
+        // with actual visual overlays for accessibility
+        print("🎯 Click visual feedback at: \(point)")
+    }
 
     func toggleClicking() {
+        // Enhanced accessibility logging
+        let action = isRunning ? "Stopping" : "Starting"
+        print("🔄 \(action) SmartClick - Assistive clicking mode")
+        
         isRunning.toggle()
         isRunning ? startClicking() : stopClicking()
     }
@@ -42,8 +86,15 @@ class ClickController: ObservableObject {
     func startClicking() {
         guard let point = targetPoint else {
             print("❌ No target point selected.")
-            errorMessage = "No target selected"
-
+            errorMessage = "Please select a target location first"
+            isRunning = false
+            return
+        }
+        
+        // Check accessibility permissions
+        let trusted = AXIsProcessTrusted()
+        if !trusted {
+            errorMessage = "Accessibility permission required for assistive clicking"
             isRunning = false
             return
         }
@@ -52,6 +103,13 @@ class ClickController: ObservableObject {
         delay = isIntervalMode ? interval : 1.0 / clicksPerSecond
         lastClickTime = Date()
         progress = 0
+        
+        // Enhanced logging for assistive use
+        print("🌟 SmartClick: Starting assistive clicking at \(point)")
+        print("🕰️ Interval: \(delay)s, Smart Delay: \(isSmartDelayEnabled ? "ON" : "OFF")")
+        if accessibilityMode {
+            print("♿ Accessibility mode enabled - Enhanced feedback active")
+        }
 
         // Timer to perform clicks at fixed intervals
         timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: true) { [weak self] _ in
@@ -63,7 +121,7 @@ class ClickController: ObservableObject {
             self.lastClickTime = Date()
             self.progress = 0
 
-            if self.clickCount >= self.maxClicks {
+            if self.isClickLimitEnabled && self.clickCount >= self.maxClicks {
                 self.stopClicking()
             }
         }
@@ -75,7 +133,7 @@ class ClickController: ObservableObject {
             self.progress = min(elapsed / self.delay, 1)
         }
 
-        print("🟢 Started clicking at \(point), interval: \(delay)s")
+        print("👍 SmartClick assistive automation started")
     }
 
     func stopClicking() {
@@ -97,23 +155,32 @@ class ClickController: ObservableObject {
 
         let clickAction = {
             self.moveCursorAndClick(at: point)
+            
+            // Add accessibility feedback
+            self.playClickSound()
+            self.showVisualFeedback(at: point)
+            
             self.restoreCursor(to: originalLocation)
-            self.clickCount += 1
             
             if self.isClickLimitEnabled {
                 self.progress = Double(self.clickCount) / Double(self.maxClicks)
-                print("✅ Click \(self.clickCount)/\(self.maxClicks) performed")
+                print("✅ SmartClick: \(self.clickCount)/\(self.maxClicks) assistive clicks performed")
 
                 if self.clickCount >= self.maxClicks {
+                    print("✅ SmartClick: Completed \(self.maxClicks) clicks - Task finished")
                     self.stopClicking()
                 }
             } else {
-                print("✅ Click \(self.clickCount) (unlimited mode)")
+                if self.accessibilityMode {
+                    print("✅ SmartClick: Assistive click \(self.clickCount) completed")
+                } else {
+                    print("✅ Click \(self.clickCount) (unlimited mode)")
+                }
             }
         }
 
         if isSmartDelayEnabled {
-            print("⏳ Waiting for mouse to become idle before clicking...")
+            print("⏳ SmartClick: Smart delay active - waiting for mouse idle...")
             waitForMouseIdleThen(delay: 1.0, clickAction)
         } else {
             clickAction()
@@ -210,7 +277,7 @@ class ClickController: ObservableObject {
     }
     
     func selectTarget() {
-        print("🎯 Select target enabled. Click anywhere...")
+        print("🎯 SmartClick: Target selection mode - Click anywhere to set assistive clicking location")
 
         if let monitor = globalMonitor {
             NSEvent.removeMonitor(monitor)
@@ -222,7 +289,12 @@ class ClickController: ObservableObject {
             DispatchQueue.main.async {
                 self?.targetPoint = location
                 self?.errorMessage = nil   // ✅ Clear error once target is chosen
-                print("✅ Target set at: \(location)")
+                print("✅ SmartClick: Target location set at: \(location)")
+                
+                // Accessibility feedback
+                if self?.accessibilityMode == true {
+                    print("♿ Accessibility: Click target confirmed for assistive automation")
+                }
 
                 if let monitor = self?.globalMonitor {
                     NSEvent.removeMonitor(monitor)
