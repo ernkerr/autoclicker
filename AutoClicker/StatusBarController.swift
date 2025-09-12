@@ -9,15 +9,33 @@ import AppKit
 
 class StatusBarController {
     private var statusItem: NSStatusItem
+    private var clickController: ClickController
 
     init() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        clickController = ClickController.shared
 
+        setupStatusIcon()
+        constructMenu()
+        
+        // Observe clicking state changes
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(updateStatusIcon),
+            name: NSNotification.Name("ClickingStateChanged"),
+            object: nil
+        )
+    }
+    
+    private func setupStatusIcon() {
+        updateStatusIcon()
+    }
+    
+    @objc private func updateStatusIcon() {
         if let button = statusItem.button {
+            // Use simple cursor icon for both states - original design
             button.image = NSImage(systemSymbolName: "cursorarrow.click.2", accessibilityDescription: "SmartClick - Assistive Auto Clicker")
         }
-
-        constructMenu()
     }
 
     private func constructMenu() {

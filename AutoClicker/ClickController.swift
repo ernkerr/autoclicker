@@ -10,6 +10,7 @@ import Combine
 import AppKit
 import AVFoundation // For audio feedback
 import ApplicationServices // For accessibility APIs
+import QuartzCore // For visual animations
 
 class ClickController: ObservableObject {
     static let shared = ClickController()
@@ -24,9 +25,47 @@ class ClickController: ObservableObject {
     @Published var isClickLimitEnabled: Bool = false
     @Published var maxClicks: Int = 100
     @Published var errorMessage: String? = nil
-    @Published var isAudioFeedbackEnabled: Bool = true // New accessibility feature
-    @Published var isVisualFeedbackEnabled: Bool = true // New accessibility feature
-    @Published var accessibilityMode: Bool = false // New: Enhanced mode for users with disabilities
+    @Published var isAudioFeedbackEnabled: Bool = false
+    @Published var isVisualFeedbackEnabled: Bool = false
+    @Published var accessibilityMode: Bool = false { // New: Enhanced mode for users with disabilities
+        didSet {
+            if accessibilityMode {
+                // Auto-enable audio and visual feedback when Enhanced Accessibility Mode is turned on
+                isAudioFeedbackEnabled = true
+                isVisualFeedbackEnabled = true
+                print("♿ Enhanced Accessibility Mode activated - Auto-enabled Audio and Visual Feedback")
+            } else {
+                // Auto-disable audio and visual feedback when Enhanced Accessibility Mode is turned off
+                isAudioFeedbackEnabled = false
+                isVisualFeedbackEnabled = false
+                print("♿ Enhanced Accessibility Mode deactivated - Auto-disabled Audio and Visual Feedback")
+            }
+        }
+    }
+    @Published var isTargetSelectionMode: Bool = false // New: Track target selection state
+    @Published var smartMode: Bool = false { // New: Smart mode for enhanced features
+        didSet {
+            if smartMode {
+                // Auto-enable smart features when Smart Mode is turned on
+                isDoubleClickEnabled = true
+                isSmartDelayEnabled = true
+                print("🧠 Smart Mode activated - Auto-enabled Double Click and Smart Delay")
+            } else {
+                // Auto-disable audio and visual feedback when Smart Mode is turned off
+                isDoubleClickEnabled = false
+                isSmartDelayEnabled = false
+                // Note: We don't auto-disable Double Click and Smart Delay
+                // This gives users flexibility to keep individual features enabled
+                print("🧠 Smart Mode deactivated - Auto-disabled Audio and Visual Feedback")
+            }
+            // Note: We don't auto-disable when Smart Mode is turned off
+            // This gives users flexibility to keep individual features enabled
+        }
+    }
+
+    
+    // Visual feedback overlay window
+    private var feedbackWindow: NSWindow?
 
 
     private var timer: Timer?
@@ -41,37 +80,127 @@ class ClickController: ObservableObject {
     private init() {
         setupAudioFeedback()
     }
-    
+
     // MARK: - Accessibility Features
     private func setupAudioFeedback() {
-        guard let soundURL = Bundle.main.url(forResource: "click", withExtension: "wav") else {
-            // Create a simple system sound if no custom sound available
-            return
+        // Using system sounds - no setup needed
+    }
+    
+    private func showAccessibilityPermissionDialog() {
+        let alert = NSAlert()
+        alert.messageText = "SmartClick Needs Accessibility Permission"
+        alert.informativeText = "SmartClick is an assistive technology that helps reduce repetitive strain by automating clicks. To function properly, it needs accessibility permissions.\n\nThis allows SmartClick to:\n• Simulate mouse clicks for assistive automation\n• Provide visual and audio feedback for accessibility\n• Help users with repetitive tasks and strain reduction"
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Open System Preferences")
+        alert.addButton(withTitle: "Cancel")
+        
+        let response = alert.runModal()
+        
+        if response == .alertFirstButtonReturn {
+            // Try to prompt for permissions and open System Preferences
+            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
+            let _ = AXIsProcessTrustedWithOptions(options as CFDictionary)
+            
+            // Also try to open System Preferences directly to Accessibility
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                NSWorkspace.shared.open(url)
+            }
         }
-        try? audioPlayer = AVAudioPlayer(contentsOf: soundURL)
-        audioPlayer?.prepareToPlay()
     }
     
     private func playClickSound() {
         guard isAudioFeedbackEnabled else { return }
         
-        // Use system sound as fallback
-        if audioPlayer == nil {
-            NSSound.beep()
+        // Play sound immediately with no async dispatch for better timing
+        if let sound = NSSound(named: "Tink") {
+            sound.volume = 0.4
+            let played = sound.play()
+            print("🔊 Playing Tink sound: \(played ? "Success" : "Failed")")
+        } else if let sound = NSSound(named: "Pop") {
+            sound.volume = 0.4
+            let played = sound.play()
+            print("🔊 Playing Pop sound: \(played ? "Success" : "Failed")")
         } else {
-            audioPlayer?.stop()
-            audioPlayer?.currentTime = 0
-            audioPlayer?.play()
+            // Fallback to system beep
+            NSSound.beep()
+            print("🔊 Playing system beep")
         }
     }
     
     private func showVisualFeedback(at point: CGPoint) {
         guard isVisualFeedbackEnabled else { return }
         
-        // This would create a visual indicator at the click point
-        // For now, we'll use console output but this could be enhanced
-        // with actual visual overlays for accessibility
-        print("🎯 Click visual feedback at: \(point)")
+        print("👀 Creating visual feedback at: \(point)")
+        
+        // Create feedback immediately on main thread
+        DispatchQueue.main.async { [weak self] in
+            self?.createVisualFeedbackCircle(at: point)
+        }
+    }
+    
+    private func createVisualFeedbackCircle(at point: CGPoint) {
+        // Clean up existing feedback first
+        if let existingWindow = feedbackWindow {
+            existingWindow.close()
+            feedbackWindow = nil
+        }
+        
+        // Add error handling and validation
+        guard point.x >= 0 && point.y >= 0 else {
+            print("⚠️ Invalid point for visual feedback: \(point)")
+            return
+        }
+        
+        // Create a simple, reliable circle
+        let size: CGFloat = 50
+        let rect = NSRect(
+            x: point.x - size/2,
+            y: point.y - size/2,
+            width: size,
+            height: size
+        )
+        
+        // Create window with proper memory management
+        let window = NSWindow(
+            contentRect: rect,
+            styleMask: .borderless,
+            backing: .buffered,
+            defer: false
+        )
+        
+        // Configure window for reliability
+        window.backgroundColor = .clear
+        window.isOpaque = false
+        window.ignoresMouseEvents = true
+        window.level = .floating
+        window.hasShadow = false
+        window.collectionBehavior = [.canJoinAllSpaces, .stationary]
+        
+        // Create simple circle view with proper retain behavior
+        let circle = NSView(frame: NSRect(x: 0, y: 0, width: size, height: size))
+        circle.wantsLayer = true
+        
+        let layer = CALayer()
+        layer.frame = circle.bounds
+        layer.backgroundColor = NSColor.systemBlue.withAlphaComponent(0.7).cgColor
+        layer.cornerRadius = size / 2
+        circle.layer = layer
+        
+        window.contentView = circle
+        
+        // Show window and store reference
+        window.orderFront(nil)
+        feedbackWindow = window
+        print("👀 Visual feedback shown successfully")
+        
+        // Simple fade out without complex animations
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            if let feedbackWindow = self?.feedbackWindow, feedbackWindow == window {
+                feedbackWindow.orderOut(nil)
+                self?.feedbackWindow = nil
+                print("👀 Visual feedback removed")
+            }
+        }
     }
 
     func toggleClicking() {
@@ -81,12 +210,15 @@ class ClickController: ObservableObject {
         
         isRunning.toggle()
         isRunning ? startClicking() : stopClicking()
+        
+        // Notify status bar to update icon
+        NotificationCenter.default.post(name: NSNotification.Name("ClickingStateChanged"), object: nil)
     }
 
     func startClicking() {
         guard let point = targetPoint else {
             print("❌ No target point selected.")
-            errorMessage = "Please select a target location first"
+            errorMessage = "No target selected"
             isRunning = false
             return
         }
@@ -94,7 +226,10 @@ class ClickController: ObservableObject {
         // Check accessibility permissions
         let trusted = AXIsProcessTrusted()
         if !trusted {
-            errorMessage = "Accessibility permission required for assistive clicking"
+            // Show a user-friendly dialog requesting accessibility permissions
+            DispatchQueue.main.async {
+                self.showAccessibilityPermissionDialog()
+            }
             isRunning = false
             return
         }
@@ -115,7 +250,6 @@ class ClickController: ObservableObject {
         timer = Timer.scheduledTimer(withTimeInterval: delay, repeats: true) { [weak self] _ in
             guard let self = self else { return }
             self.performClick(at: point)
-            self.clickCount += 1
             
             // Reset progress tracking each click
             self.lastClickTime = Date()
@@ -142,11 +276,24 @@ class ClickController: ObservableObject {
 
         progressTimer?.invalidate()   // stop progress updates too
         progressTimer = nil
+        
+        // Clean up visual feedback
+        if let window = feedbackWindow {
+            window.orderOut(nil)
+            feedbackWindow = nil
+        }
 
         isRunning = false
         progress = 0
-
-        print("🔴 Stopped clicking")
+        
+        // Notify status bar to update icon
+        NotificationCenter.default.post(name: NSNotification.Name("ClickingStateChanged"), object: nil)
+        
+        if smartMode || accessibilityMode {
+            print("🔴 SmartClick: Stopped - Total clicks: \(clickCount)")
+        } else {
+            print("🔴 Stopped clicking")
+        }
     }
 
 
@@ -154,33 +301,28 @@ class ClickController: ObservableObject {
         let originalLocation = NSEvent.mouseLocation
 
         let clickAction = {
+            // Show visual feedback BEFORE clicking for better timing
+            self.showVisualFeedback(at: point)
+            
+            // Play sound and click simultaneously
+            self.playClickSound()
             self.moveCursorAndClick(at: point)
             
-            // Add accessibility feedback
-            self.playClickSound()
-            self.showVisualFeedback(at: point)
+            // Increment click count
+            self.clickCount += 1
             
             self.restoreCursor(to: originalLocation)
             
             if self.isClickLimitEnabled {
                 self.progress = Double(self.clickCount) / Double(self.maxClicks)
-                print("✅ SmartClick: \(self.clickCount)/\(self.maxClicks) assistive clicks performed")
 
                 if self.clickCount >= self.maxClicks {
-                    print("✅ SmartClick: Completed \(self.maxClicks) clicks - Task finished")
                     self.stopClicking()
                 }
-            } else {
-                if self.accessibilityMode {
-                    print("✅ SmartClick: Assistive click \(self.clickCount) completed")
-                } else {
-                    print("✅ Click \(self.clickCount) (unlimited mode)")
-                }
-            }
+            } 
         }
 
         if isSmartDelayEnabled {
-            print("⏳ SmartClick: Smart delay active - waiting for mouse idle...")
             waitForMouseIdleThen(delay: 1.0, clickAction)
         } else {
             clickAction()
@@ -214,31 +356,55 @@ class ClickController: ObservableObject {
     }
 
     func restoreCursor(to point: CGPoint) {
-            let screenHeight = NSScreen.main?.frame.height ?? 0
-            let flippedPoint = CGPoint(x: point.x, y: screenHeight - point.y)
+        // NSEvent.mouseLocation uses AppKit coordinates (bottom-left origin)
+        // CGEvent expects screen coordinates (top-left origin)
+        // We need to flip the Y coordinate
+        
+        guard let screen = screenContaining(point) else {
+            print("⚠️ Could not find screen for cursor restore point: \(point)")
+            return
+        }
+        
+        let flippedPoint = flipPointVertically(point, on: screen)
+        
+        // Move the cursor back to original position
+        let moveEvent = CGEvent(mouseEventSource: nil,
+                                mouseType: .mouseMoved,
+                                mouseCursorPosition: flippedPoint,
+                                mouseButton: .left)
+        moveEvent?.post(tap: .cghidEventTap)
+        
+        print("🖱️ Cursor restored to: \(point) (flipped: \(flippedPoint))")
 
-            // Move the cursor back
-            let moveEvent = CGEvent(mouseEventSource: nil,
-                                    mouseType: .mouseMoved,
-                                    mouseCursorPosition: flippedPoint,
-                                    mouseButton: .left)
-            moveEvent?.post(tap: .cghidEventTap)
+        // Conditionally double-click after restore
+        guard isDoubleClickEnabled else { return }
 
-            // Conditionally double-click after restore
-            guard isDoubleClickEnabled else { return }
-
-            for clickType in [CGEventType.leftMouseDown, .leftMouseUp,
-                              .leftMouseDown, .leftMouseUp] {
-                let clickEvent = CGEvent(mouseEventSource: nil,
-                                         mouseType: clickType,
-                                         mouseCursorPosition: flippedPoint,
-                                         mouseButton: .left)
-                clickEvent?.post(tap: .cghidEventTap)
-            }
-
-//            print("🖱️ Double clicked after restore at (unflipped): \(point), actual: \(flippedPoint)")
+        for clickType in [CGEventType.leftMouseDown, .leftMouseUp,
+                          .leftMouseDown, .leftMouseUp] {
+            let clickEvent = CGEvent(mouseEventSource: nil,
+                                     mouseType: clickType,
+                                     mouseCursorPosition: point,
+                                     mouseButton: .left)
+            clickEvent?.post(tap: .cghidEventTap)
         }
 
+print("🖱️ Double clicked after restore at: \(point) (flipped: \(flippedPoint))")
+    }
+
+    private func screenContaining(_ point: CGPoint) -> NSScreen? {
+        return NSScreen.screens.first { NSMouseInRect(point, $0.frame, false) }
+    }
+
+    private func flipPointVertically(_ point: CGPoint, on screen: NSScreen) -> CGPoint {
+        return CGPoint(x: point.x, y: screen.frame.maxY - point.y)
+    }
+    private func screenContaining(_ point: CGPoint) -> NSScreen? {
+        return NSScreen.screens.first { NSMouseInRect(point, $0.frame, false) }
+    }
+
+    private func flipPointVertically(_ point: CGPoint, on screen: NSScreen) -> CGPoint {
+        return CGPoint(x: point.x, y: screen.frame.maxY - point.y)
+    }
     private func screenContaining(_ point: CGPoint) -> NSScreen? {
         return NSScreen.screens.first { NSMouseInRect(point, $0.frame, false) }
     }
@@ -278,6 +444,7 @@ class ClickController: ObservableObject {
     
     func selectTarget() {
         print("🎯 SmartClick: Target selection mode - Click anywhere to set assistive clicking location")
+        isTargetSelectionMode = true
 
         if let monitor = globalMonitor {
             NSEvent.removeMonitor(monitor)
@@ -288,6 +455,7 @@ class ClickController: ObservableObject {
             let location = NSEvent.mouseLocation
             DispatchQueue.main.async {
                 self?.targetPoint = location
+                self?.isTargetSelectionMode = false
                 self?.errorMessage = nil   // ✅ Clear error once target is chosen
                 print("✅ SmartClick: Target location set at: \(location)")
                 

@@ -14,14 +14,25 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            // Accessibility mode toggle
-            if clickController.accessibilityMode {
+            // Accessibility mode indicator
+                        if clickController.smartMode {
+                    // Smart mode indicator
+                    HStack {
+                        Image(systemName: "brain.head.profile")
+                            .foregroundColor(.blue)
+                        Text("Smart Mode")
+                            .font(.caption.weight(.medium))
+                            .foregroundColor(.blue)
+                    }   else if clickController.accessibilityMode {
                 HStack {
                     Image(systemName: "person.badge.plus")
                         .foregroundColor(.blue)
                     Text("Assistive Mode")
                         .font(.caption.weight(.medium))
                         .foregroundColor(.blue)
+                } 
+                }
+              
                 }
                 .padding(4)
                 .background(
@@ -48,18 +59,25 @@ struct ContentView: View {
                         }
                     }
                     .foregroundColor(.primary) // Apple's adaptive gray
-                    .padding(8)
+                    .frame(width: 65, height: 55) // Matched middle size with settings button
                     .background(
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(.thinMaterial) //
+                            .fill(.thinMaterial)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 10)
                                     .stroke(.white.opacity(0.1), lineWidth: 1)
+                            )
+                            .overlay(
+                                // Add border when in target selection mode
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(.blue, lineWidth: clickController.isTargetSelectionMode ? 2 : 0)
+                                    .animation(.easeInOut(duration: 0.2), value: clickController.isTargetSelectionMode)
                             )
                             .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                     )
                 }
                 .buttonStyle(.plain)
+                .contentShape(Rectangle()) // Make entire area clickable
                 .help("Select where to perform assistive clicking")
 
                 Spacer()
@@ -70,7 +88,7 @@ struct ContentView: View {
                     Image(systemName: "gearshape")
                         .font(.title2)
                         .foregroundColor(.primary) // Apple's adaptive gray
-                        .padding(8)
+                        .frame(width: 65, height: 55) // Matched middle size with target button
                         .background(
                             RoundedRectangle(cornerRadius: 10)
                                 .fill(.thinMaterial)
@@ -82,14 +100,17 @@ struct ContentView: View {
                         )
                 }
                 .buttonStyle(.plain)
+                .contentShape(Rectangle()) // Make entire area clickable
                 .sheet(isPresented: $showSettings) {
                     SettingsView(clickController: clickController)
+                        .interactiveDismissDisabled(false)
                 }
+                .allowsHitTesting(true) // Ensure the main window can still receive drag events
             }
             .frame(maxWidth: .infinity)
 
-            // ▶️ Start/Stop with enhanced visibility and accessibility
-            Button(clickController.isRunning ? "Stop Assist" : "Start Assist") {
+            // ▶️ Start/Stop with enhanced visibility
+            Button(clickController.isRunning ? "Stop" : "Start") {
                 clickController.toggleClicking()
             }
             .font(.title.weight(.semibold))
@@ -110,25 +131,26 @@ struct ContentView: View {
             )
             .foregroundColor(.white) // Keep start button text white for contrast
             .buttonStyle(.plain)
-            .help(clickController.isRunning ? "Stop assistive clicking" : "Start assistive clicking at selected location")
+            .help(clickController.isRunning ? "Stop clicking" : "Start clicking at selected location")
             
             if clickController.isRunning {
-                Text("Control + Option + Command + Q to stop")
-                    .font(.caption.weight(.medium))
-                    .foregroundColor(.red.opacity(0.9)) // 🔴 red-ish text like error
-                    .multilineTextAlignment(.center)
-                    .lineLimit(nil) // ✅ allow wrapping
-                    .fixedSize(horizontal: false, vertical: true) // ✅ wrap instead of cut off
-                    .padding(.horizontal)
-                    .padding(8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(.regularMaterial)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(.red.opacity(0.3), lineWidth: 1) // 🔴 border like error
-                            )
-                    )
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                        .font(.caption)
+                    Text("⌃⌥⌘Q to stop")
+                        .font(.caption.weight(.medium))
+                        .foregroundColor(.orange)
+                }
+                .padding(6)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(.regularMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(.orange.opacity(0.3), lineWidth: 1)
+                        )
+                )
             }
 
 
@@ -139,7 +161,7 @@ struct ContentView: View {
                 }
                 .font(.title2)
                 .foregroundColor(.primary) // Apple's adaptive gray
-                .padding(12)
+                .frame(width: 36, height: 36) // Consistent size with settings
                 .background(
                     RoundedRectangle(cornerRadius: 10)
                         .fill(.thinMaterial)
@@ -149,8 +171,8 @@ struct ContentView: View {
                         )
                         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                 )
-                .contentShape(Rectangle())
                 .buttonStyle(.plain)
+                .contentShape(Rectangle()) // Make entire area clickable
 
                 Text(clickController.isIntervalMode ?
                      "\(Int(clickController.interval))" :
@@ -165,7 +187,7 @@ struct ContentView: View {
                 }
                 .font(.title2)
                 .foregroundColor(.primary) // Apple's adaptive gray
-                .padding(12)
+                .frame(width: 36, height: 36) // Consistent size with settings
                 .background(
                     RoundedRectangle(cornerRadius: 10)
                         .fill(.thinMaterial)
@@ -175,8 +197,8 @@ struct ContentView: View {
                         )
                         .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                 )
-                .contentShape(Rectangle())
                 .buttonStyle(.plain)
+                .contentShape(Rectangle()) // Make entire area clickable
             }
             .padding(.bottom, 6)
             
