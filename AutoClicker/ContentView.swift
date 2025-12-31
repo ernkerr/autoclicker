@@ -15,24 +15,13 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 16) {
             // Accessibility mode indicator
-                        if clickController.smartMode {
-                    // Smart mode indicator
-                    HStack {
-                        Image(systemName: "brain.head.profile")
-                            .foregroundColor(.blue)
-                        Text("Smart Mode")
-                            .font(.caption.weight(.medium))
-                            .foregroundColor(.blue)
-                    }   else if clickController.accessibilityMode {
+            if clickController.smartMode || clickController.accessibilityMode {
                 HStack {
-                    Image(systemName: "person.badge.plus")
+                    Image(systemName: clickController.smartMode ? "brain.head.profile" : "person.badge.plus")
                         .foregroundColor(.blue)
-                    Text("Assistive Mode")
+                    Text(clickController.smartMode ? "Smart Mode" : "Assistive Mode")
                         .font(.caption.weight(.medium))
                         .foregroundColor(.blue)
-                } 
-                }
-              
                 }
                 .padding(4)
                 .background(
@@ -156,23 +145,25 @@ struct ContentView: View {
 
             // ➕➖ Rate controls with exact target/settings style
             HStack(spacing: 12) {
-                Button("-") {
+                Button(action: {
                     clickController.decreaseRate()
-                }
-                .font(.title2)
-                .foregroundColor(.primary) // Apple's adaptive gray
-                .frame(width: 36, height: 36) // Consistent size with settings
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(.thinMaterial)
-                        .overlay(
+                }) {
+                    Text("-")
+                        .font(.title2)
+                        .foregroundColor(.primary)
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle()) // Makes the whole 36x36 clickable
+                        .background(
                             RoundedRectangle(cornerRadius: 10)
-                                .stroke(.white.opacity(0.1), lineWidth: 1)
+                                .fill(.thinMaterial)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                                )
+                                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                         )
-                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-                )
+                }
                 .buttonStyle(.plain)
-                .contentShape(Rectangle()) // Make entire area clickable
 
                 Text(clickController.isIntervalMode ?
                      "\(Int(clickController.interval))" :
@@ -182,23 +173,25 @@ struct ContentView: View {
                 .foregroundColor(.primary) // Apple's adaptive gray
                 .font(.title2.weight(.medium))
 
-                Button("+") {
+                Button(action: {
                     clickController.increaseRate()
-                }
-                .font(.title2)
-                .foregroundColor(.primary) // Apple's adaptive gray
-                .frame(width: 36, height: 36) // Consistent size with settings
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(.thinMaterial)
-                        .overlay(
+                }) {
+                    Text("+")
+                        .font(.title2)
+                        .foregroundColor(.primary)
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle()) // Makes the whole 36x36 clickable
+                        .background(
                             RoundedRectangle(cornerRadius: 10)
-                                .stroke(.white.opacity(0.1), lineWidth: 1)
+                                .fill(.thinMaterial)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                                )
+                                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                         )
-                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-                )
+                }
                 .buttonStyle(.plain)
-                .contentShape(Rectangle()) // Make entire area clickable
             }
             .padding(.bottom, 6)
             

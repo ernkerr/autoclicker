@@ -72,10 +72,9 @@ class ClickController: ObservableObject {
     private var clickCount = 0
     private var targetPoint: CGPoint?
     private var globalMonitor: Any?
-    private var progressTimer: Timer?   // new timer for smooth progress updates
-    private var lastClickTime: Date?    // time of last click, for progress calculation
     private var delay: TimeInterval = 1 // how long between clicks (seconds)
     private var audioPlayer: AVAudioPlayer? // For accessibility audio feedback
+    private var lastClickTime: Date?
 
     private init() {
         setupAudioFeedback()
@@ -251,20 +250,9 @@ class ClickController: ObservableObject {
             guard let self = self else { return }
             self.performClick(at: point)
             
-            // Reset progress tracking each click
-            self.lastClickTime = Date()
-            self.progress = 0
-
             if self.isClickLimitEnabled && self.clickCount >= self.maxClicks {
                 self.stopClicking()
             }
-        }
-
-        // Timer to update progress smoothly 20 times per second
-        progressTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
-            guard let self = self, let lastClickTime = self.lastClickTime else { return }
-            let elapsed = Date().timeIntervalSince(lastClickTime)
-            self.progress = min(elapsed / self.delay, 1)
         }
 
         print("👍 SmartClick assistive automation started")
@@ -273,9 +261,6 @@ class ClickController: ObservableObject {
     func stopClicking() {
         timer?.invalidate()
         timer = nil
-
-        progressTimer?.invalidate()   // stop progress updates too
-        progressTimer = nil
         
         // Clean up visual feedback
         if let window = feedbackWindow {
@@ -301,15 +286,15 @@ class ClickController: ObservableObject {
         let originalLocation = NSEvent.mouseLocation
 
         let clickAction = {
-            // Show visual feedback BEFORE clicking for better timing
-            self.showVisualFeedback(at: point)
-            
             // Play sound and click simultaneously
             self.playClickSound()
             self.moveCursorAndClick(at: point)
             
             // Increment click count
             self.clickCount += 1
+            
+            // Short delay to ensure system processes the click before moving mouse back
+            usleep(20000) // 0.02s
             
             self.restoreCursor(to: originalLocation)
             
@@ -330,11 +315,7 @@ class ClickController: ObservableObject {
     }
 
     func moveCursorAndClick(at point: CGPoint) {
-        guard let screen = screenContaining(point) else {
-            print("❌ Could not find screen for point: \(point)")
-            return
-        }
-        let flippedPoint = flipPointVertically(point, on: screen)
+        let flippedPoint = flipPointVertically(point)
 
         let moveEvent = CGEvent(mouseEventSource: nil,
                                 mouseType: .mouseMoved,
@@ -342,14 +323,27 @@ class ClickController: ObservableObject {
                                 mouseButton: .left)
         moveEvent?.post(tap: .cghidEventTap)
 
-        // Double click
-        for clickType in [CGEventType.leftMouseDown, .leftMouseUp,
-                          .leftMouseDown, .leftMouseUp] {
+        // First Click (Count: 1)
+        for clickType in [CGEventType.leftMouseDown, .leftMouseUp] {
             let clickEvent = CGEvent(mouseEventSource: nil,
                                      mouseType: clickType,
                                      mouseCursorPosition: flippedPoint,
                                      mouseButton: .left)
+            clickEvent?.setIntegerValueField(.mouseEventClickState, value: 1)
             clickEvent?.post(tap: .cghidEventTap)
+        }
+        
+        // Second Click (Count: 2) - required for macOS to recognize "Double Click"
+        if isDoubleClickEnabled {
+            print("🖱️ Performing Double Click")
+            for clickType in [CGEventType.leftMouseDown, .leftMouseUp] {
+                let clickEvent = CGEvent(mouseEventSource: nil,
+                                         mouseType: clickType,
+                                         mouseCursorPosition: flippedPoint,
+                                         mouseButton: .left)
+                clickEvent?.setIntegerValueField(.mouseEventClickState, value: 2)
+                clickEvent?.post(tap: .cghidEventTap)
+            }
         }
 
 //        print("🖱️ Double clicked at (unflipped): \(point), actual: \(flippedPoint)")
@@ -358,14 +352,9 @@ class ClickController: ObservableObject {
     func restoreCursor(to point: CGPoint) {
         // NSEvent.mouseLocation uses AppKit coordinates (bottom-left origin)
         // CGEvent expects screen coordinates (top-left origin)
-        // We need to flip the Y coordinate
+        // We need to flip the Y coordinate relative to the main screen height
         
-        guard let screen = screenContaining(point) else {
-            print("⚠️ Could not find screen for cursor restore point: \(point)")
-            return
-        }
-        
-        let flippedPoint = flipPointVertically(point, on: screen)
+        let flippedPoint = flipPointVertically(point)
         
         // Move the cursor back to original position
         let moveEvent = CGEvent(mouseEventSource: nil,
@@ -374,43 +363,24 @@ class ClickController: ObservableObject {
                                 mouseButton: .left)
         moveEvent?.post(tap: .cghidEventTap)
         
-        print("🖱️ Cursor restored to: \(point) (flipped: \(flippedPoint))")
-
-        // Conditionally double-click after restore
-        guard isDoubleClickEnabled else { return }
-
-        for clickType in [CGEventType.leftMouseDown, .leftMouseUp,
-                          .leftMouseDown, .leftMouseUp] {
-            let clickEvent = CGEvent(mouseEventSource: nil,
-                                     mouseType: clickType,
-                                     mouseCursorPosition: point,
-                                     mouseButton: .left)
-            clickEvent?.post(tap: .cghidEventTap)
-        }
-
-print("🖱️ Double clicked after restore at: \(point) (flipped: \(flippedPoint))")
+        
     }
 
     private func screenContaining(_ point: CGPoint) -> NSScreen? {
         return NSScreen.screens.first { NSMouseInRect(point, $0.frame, false) }
     }
 
-    private func flipPointVertically(_ point: CGPoint, on screen: NSScreen) -> CGPoint {
-        return CGPoint(x: point.x, y: screen.frame.maxY - point.y)
-    }
-    private func screenContaining(_ point: CGPoint) -> NSScreen? {
-        return NSScreen.screens.first { NSMouseInRect(point, $0.frame, false) }
-    }
-
-    private func flipPointVertically(_ point: CGPoint, on screen: NSScreen) -> CGPoint {
-        return CGPoint(x: point.x, y: screen.frame.maxY - point.y)
-    }
-    private func screenContaining(_ point: CGPoint) -> NSScreen? {
-        return NSScreen.screens.first { NSMouseInRect(point, $0.frame, false) }
-    }
-
-    private func flipPointVertically(_ point: CGPoint, on screen: NSScreen) -> CGPoint {
-        return CGPoint(x: point.x, y: screen.frame.maxY - point.y)
+    private func flipPointVertically(_ point: CGPoint, on screen: NSScreen? = nil) -> CGPoint {
+        // CGEvent coordinates are relative to the *Main Screen's* top-left.
+        // NSEvent coordinates are relative to the *Main Screen's* bottom-left.
+        // To convert globally, we always flip relative to the Main Screen's height.
+        // We ignore the specific 'screen' parameter for the height calculation to ensure global consistency.
+        
+        let mainScreenHeight = NSScreen.screens.first?.frame.height ?? 1080
+        let flippedY = mainScreenHeight - point.y
+        let flipped = CGPoint(x: point.x, y: flippedY)
+        
+        return flipped
     }
 
 
