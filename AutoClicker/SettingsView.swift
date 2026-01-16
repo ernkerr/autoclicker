@@ -45,7 +45,7 @@ struct SettingsView: View {
                     Image(systemName: isAccessibilityExpanded ? "chevron.down" : "chevron.right")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    Text("Accessibility Features")
+                    Text("Feedback Options")
                         .font(.headline.weight(.medium))
                         .foregroundColor(.primary)
                     Spacer()
@@ -59,7 +59,7 @@ struct SettingsView: View {
                 
                 if isAccessibilityExpanded {
                     VStack(alignment: .leading, spacing: 12) {
-                        settingRow(title: "Enhanced Accessibility Mode", binding: $clickController.accessibilityMode)
+                        settingRow(title: "Enhanced Feedback Mode", binding: $clickController.accessibilityMode)
                         settingRow(title: "Audio Feedback", binding: $clickController.isAudioFeedbackEnabled)
                         settingRow(title: "Visual Feedback", binding: $clickController.isVisualFeedbackEnabled)
                     }

@@ -87,24 +87,50 @@ class ClickController: ObservableObject {
     
     private func showAccessibilityPermissionDialog() {
         let alert = NSAlert()
-        alert.messageText = "SmartClick Needs Accessibility Permission"
-        alert.informativeText = "SmartClick is an assistive technology that helps reduce repetitive strain by automating clicks. To function properly, it needs accessibility permissions.\n\nThis allows SmartClick to:\n• Simulate mouse clicks for assistive automation\n• Provide visual and audio feedback for accessibility\n• Help users with repetitive tasks and strain reduction"
+        alert.messageText = "Accessibility Permission Required"
+        alert.informativeText = "SmartClick needs to control your mouse to click automatically.\n\n1. If a system prompt appears, click 'Open System Settings'.\n2. In Privacy & Security > Accessibility, toggle SmartClick ON.\n3. If it's already ON, remove it and add it again (minus button, then plus button)."
         alert.alertStyle = .informational
-        alert.addButton(withTitle: "Open System Preferences")
+        alert.addButton(withTitle: "Open System Settings")
+        alert.addButton(withTitle: "Check Again")
         alert.addButton(withTitle: "Cancel")
         
         let response = alert.runModal()
         
         if response == .alertFirstButtonReturn {
-            // Try to prompt for permissions and open System Preferences
-            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
-            let _ = AXIsProcessTrustedWithOptions(options as CFDictionary)
-            
-            // Also try to open System Preferences directly to Accessibility
+            // Open System Preferences directly to Accessibility
             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
                 NSWorkspace.shared.open(url)
             }
+            
+            // Allow user to check again after opening settings
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                // Check silently first
+                if AXIsProcessTrusted() {
+                    self.isRunning = true
+                    self.startClicking()
+                } else {
+                    self.showAccessibilityPermissionDialog()
+                }
+            }
+        } else if response == .alertSecondButtonReturn {
+            // Check Again
+            // Using WithOptions here too to be sure
+            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+            let trusted = AXIsProcessTrustedWithOptions(options)
+            
+            if trusted {
+                print("✅ Permission granted!")
+                // Automatically start if they wanted to start
+                self.isRunning = true
+                self.startClicking()
+            } else {
+                // Shake window or show dialog again? Just show again for now.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.showAccessibilityPermissionDialog()
+                }
+            }
         }
+        // Cancel does nothing, just closes
     }
     
     private func playClickSound() {
@@ -223,7 +249,10 @@ class ClickController: ObservableObject {
         }
         
         // Check accessibility permissions
-        let trusted = AXIsProcessTrusted()
+        // Use WithOptions to ensure we prompt the system to register the app, improving retention
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        let trusted = AXIsProcessTrustedWithOptions(options)
+        
         if !trusted {
             // Show a user-friendly dialog requesting accessibility permissions
             DispatchQueue.main.async {

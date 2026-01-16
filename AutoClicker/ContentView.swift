@@ -19,7 +19,7 @@ struct ContentView: View {
                 HStack {
                     Image(systemName: clickController.smartMode ? "brain.head.profile" : "person.badge.plus")
                         .foregroundColor(.blue)
-                    Text(clickController.smartMode ? "Smart Mode" : "Assistive Mode")
+                    Text(clickController.smartMode ? "Smart Mode" : "Enhanced Mode")
                         .font(.caption.weight(.medium))
                         .foregroundColor(.blue)
                 }

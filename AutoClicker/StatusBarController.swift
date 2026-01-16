@@ -34,7 +34,7 @@ class StatusBarController {
     @objc private func updateStatusIcon() {
         if let button = statusItem.button {
             // Use simple cursor icon for both states - original design
-            button.image = NSImage(systemSymbolName: "cursorarrow", accessibilityDescription: "SmartClick - Assistive Auto Clicker")
+            button.image = NSImage(systemSymbolName: "cursorarrow", accessibilityDescription: "SmartClick - Auto Clicker")
         }
     }
 
